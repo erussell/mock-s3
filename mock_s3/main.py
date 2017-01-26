@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import ssl
 import sys
 import urlparse
 import xml.etree.ElementTree as ET
@@ -213,12 +214,20 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('--pull-from-aws', dest='pull_from_aws', action='store_true',
                         default=False,
                         help='Pull non-existent keys from aws.')
+    parser.add_argument('--ssl-key', dest='ssl_key', action='store',
+                        default=None,
+                        help='Path to SSL key file')
+    parser.add_argument('--ssl-cert', dest='ssl_cert', action='store',
+                        default=None,
+                        help='Path to SSL cert file')
     args = parser.parse_args()
 
     server = ThreadedHTTPServer((args.hostname, args.port), S3Handler)
     server.set_file_store(FileStore(args.root))
     server.set_mock_hostname(args.hostname)
     server.set_pull_from_aws(args.pull_from_aws)
+    if args.ssl_key and args.ssl_cert:
+        server.socket = ssl.wrap_socket(server.socket, keyfile=args.ssl_key, certfile=args.ssl_cert, server_side=True)
 
     print 'Starting server, use <Ctrl-C> to stop'
     server.serve_forever()
